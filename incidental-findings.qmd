@@ -35,8 +35,16 @@ luxchildren_134detchem <- read_excel("data/Lux2021_NA_CAS_134.xlsx")
 
 # Approach 1: Ranking cases based on toxicity and concentration:
 
-### First sorting in increasing order of RfD: the higher the RfD the less toxic the chemical.
-### Second sorting in decreasing order of concentration.
+### Data preparation: identifying which of the 134 chemicals have RfD values
+```{r}
+rfd_134chems <- inner_join(rfd_iris, luxchildren_134detchem, by = "CAS_RN") |> 
+  select(1:3) |> 
+  arrange(rfd)
+```
+
+
+### First, sorting in increasing order of RfD: the higher the RfD the less toxic the chemical.
+### Second, sorting in decreasing order of concentration.
 ```{r}
 ranking_approach1 <-  inner_join(rfd_iris, luxchildren_134detchem, by = "CAS_RN")|> # merging IRIS RfD values with the levels of the 134 chemicals detected in hair of 218 Luxembourgish children
   mutate(rank_RfD = min_rank(rfd), # ranking matched chemicals by RfD values
@@ -55,4 +63,3 @@ ranking_approach1 <-  inner_join(rfd_iris, luxchildren_134detchem, by = "CAS_RN"
   select(10,9, 7, 5, 8, 4) 
   
 ```
-
