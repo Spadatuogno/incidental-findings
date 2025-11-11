@@ -63,3 +63,26 @@ ranking_approach1 <-  inner_join(rfd_iris, luxchildren_134detchem, by = "CAS_RN"
   select(10,9, 7, 5, 8, 4) 
   
 ```
+
+
+# Aproach 2: Ranking cases based on concentration
+```{r}
+ranking_approach2 <-  luxchildren_134detchem |> 
+  pivot_longer(cols = 3:220,
+               names_to = "part_id",
+               values_to = "pg_mg",
+               values_drop_na = TRUE) |> 
+  arrange(desc(pg_mg)) |> 
+  mutate(cases = str_c(part_id, Chemical, sep = "/"),
+         rank_approach2 = rank(-pg_mg, ties.method = "min")) |> 
+  select(6, 5, 3, 1, 4)
+  
+```
+
+
+
+
+
+
+
+
