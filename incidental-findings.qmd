@@ -16,6 +16,7 @@ library(readxl)
 library(dplyr)
 library(stringr)
 library(tidyr)
+library(purrr)
 ```
 
 # Importing and reshaping datasets
@@ -79,7 +80,26 @@ ranking_approach2 <-  luxchildren_134detchem |>
   
 ```
 
+# Approach 3: Ranking cases based on the ratio: concentration/median 
+```{r}
+ranking_approach3 <-  luxchildren_134detchem |> 
+  rowwise() |> # to ensure application of operations per row
+  mutate(lod = reduce(c_across(3:220), pmin, na.rm = TRUE), # computing the minimum detected value for each chemical
+         df = round(mean(!is.na(c_across(3:220))) * 100, 2), # computing detection frequencies for each chemical
+         across(3:220, ~ ifelse(is.na(.), lod/2, as.numeric(.))), # substituting non-detected values (NAs) by LOD/2
+         median_val = median(c_across(3:220), na.rm = TRUE), # computing median value per chemical
+         across(3:220, ~ . / median_val)) |> # dividing each value by the median value of the corresponding chemical (rowwise)
+  ungroup() |> # to remove the application of operations per row
+  pivot_longer(cols = 3:220,
+               names_to = "part_id",
+               values_to = "conc_median") |> 
+  mutate(cases = str_c(part_id, Chemical, sep = "/"),
+          rank_approach3 = rank(-conc_median, ties.method = "min")) |> 
+  arrange(desc(conc_median)) |> 
+  select(9, 8, 6, 1, 7, 4)
 
+
+```
 
 
 
