@@ -1,0 +1,58 @@
+---
+title: "Codes for Incidental findings in HBM (JESEE)"
+author: "Franco Catuogno"
+format: html
+---
+
+
+```{r setup}
+#| include: false
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+# Required packages
+```{r}
+library(readxl)
+library(dplyr)
+library(stringr)
+library(tidyr)
+```
+
+# Importing and reshaping datasets
+```{r}
+rfd_iris <- read_excel("data/IRIS_RfD_simple_list_alpha.xlsx") |>  # IRIS list with RfDs values
+  select(2,3,7) |> 
+  rename(rfd = `RfD (Chronic)`) |> 
+  mutate(rfd = str_remove(rfd, "mg/kg-day"),
+         rfd = str_replace(rfd, " x 10 ", "e"),
+         rfd = as.numeric(rfd)) |> 
+  filter(!is.na(rfd))
+
+
+luxchildren_134detchem <- read_excel("data/Lux2021_NA_CAS_134.xlsx")
+  
+```
+
+# Approach 1: Ranking cases based on toxicity and concentration:
+
+### First sorting in increasing order of RfD: the higher the RfD the less toxic the chemical.
+### Second sorting in decreasing order of concentration.
+```{r}
+ranking_approach1 <-  inner_join(rfd_iris, luxchildren_134detchem, by = "CAS_RN")|> # merging IRIS RfD values with the levels of the 134 chemicals detected in hair of 218 Luxembourgish children
+  mutate(rank_RfD = min_rank(rfd), # ranking matched chemicals by RfD values
+         ranked_chemicals = str_c(rank_RfD, Chemical, sep = "° ")) |> 
+  relocate(ranked_chemicals,rfd, .after = "CAS_RN") |> # relocating rank and RfD value for easier visualization
+  arrange(rfd) |> # sorting chemicals by increasing value of RfD (ranking order)
+  pivot_longer(cols = 6:223, 
+               names_to = "part_id",
+               values_to = "pg_mg",
+               values_drop_na = TRUE) |> 
+  arrange(rfd, desc(pg_mg)) |> 
+  mutate(Chemical = recode(Chemical,
+                           "Heptachlor-exo-epoxide" = "Heptachlor-epoxide"),
+         cases = str_c(part_id, Chemical, sep = "/"),
+         rank_approach1 = row_number()) |>
+  select(10,9, 7, 5, 8, 4) 
+  
+```
+
