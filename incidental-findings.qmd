@@ -19,6 +19,7 @@ library(tidyr)
 library(purrr)
 library(ggplot2)
 library(patchwork)
+library(tibble)
 ```
 
 # Importing and reshaping datasets
@@ -122,7 +123,7 @@ ranking_approach4 <-  luxchildren_134detchem |>
 ```
 
 
-# Rankings visualization
+# Rankings visualization (Figure 1)
 
 ### Assigning colors to chemicals
 ```{r}
@@ -242,4 +243,51 @@ ra1 + ra2 + ra3 + ra4 + plot_layout(nrow = 1)
 ```
 
 
+# Exposure profiles
+
+## Population exposure profile of single chemicals (Figure 2)
+
+### Preparation of the dataframe
+```{r}
+luxchildren_134detchem_t <- luxchildren_134detchem |> 
+  rowwise() |> 
+  mutate(lod = reduce(c_across(3:220), pmin, na.rm = TRUE),
+         df = round(mean(!is.na(c_across(3:220)))* 100, 2),
+         across(3:220, ~ ifelse(is.na(.), lod/2, as.numeric(.))), # substituting non-detected values (NAs) by lod/2 for later visualization purposes.
+         across(3:220, ~ . / lod)) |> 
+  ungroup() |> 
+  select(c(3:220)) |> 
+  t() |> 
+  as.data.frame() |> 
+  `colnames<-`(luxchildren_134detchem$Chemical) |> 
+  rownames_to_column(var = "part_id")
+
+chems_params <- luxchildren_134detchem |> 
+  rowwise() |> 
+  mutate(lod = reduce(c_across(3:220), pmin, na.rm = TRUE),
+         max = reduce(c_across(3:220), pmax, na.rm = TRUE),
+         df = round(mean(!is.na(c_across(3:220)))* 100, 2)) |> 
+  ungroup() |> 
+  select(1,2,221:223)
+
+
+chems_params_fig2 <- chems_params |> 
+  filter(Chemical == "Permethrin" |
+         Chemical == "Fipronil" |
+         Chemical == "Bisphenol S" |
+         Chemical == "Bisphenol A" |
+         Chemical == "Flusilazole" |
+         Chemical == "Prochloraz" |
+         Chemical == "Aldrin" |
+         Chemical == "Heptachlor-exo-epoxide")
+
+abs_min <- min(chems_params_fig2$lod)
+abs_max <- max(chems_params_fig2$max)
+```
+
+
+### Population exposure profile of PERMETHRIN (Figure 2A)
+```{r}
+
+```
 
