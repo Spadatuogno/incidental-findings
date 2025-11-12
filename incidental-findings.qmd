@@ -75,7 +75,7 @@ ranking_approach2 <-  luxchildren_134detchem |>
                values_drop_na = TRUE) |> # pivoting data in order to build the ranking
   arrange(desc(pg_mg)) |> # sorting cases in decreasing order of concentration
   mutate(cases = str_c(part_id, Chemical, sep = "/"), # creating a variable for the cases: combinations participant/chemical
-         rank_approach2 = rank(-pg_mg, ties.method = "min")) |> # assigning ranking position based on the concentration levels
+         rank_approach2 = rank(-pg_mg, ties.method = "min")) |> # assigning ranking position based on the concentration levels and giving same rank to same values
   select(6, 5, 3, 1, 4) # selecting the most relevant columns
   
 ```
@@ -101,6 +101,23 @@ ranking_approach3 <-  luxchildren_134detchem |>
 
 ```
 
+# Approach 4: Ranking cases based on the ratio: concentration/minimum-detected
+```{r}
+ranking_approach4 <-  luxchildren_134detchem |> 
+  rowwise() |> 
+  mutate(lod = reduce(c_across(3:220), pmin, na.rm = TRUE),
+         df = round(mean(!is.na(c_across(3:220)))* 100, 2),
+         across(3:220, ~ ifelse(is.na(.), lod/2, as.numeric(.))), # substituting non-detected values (NAs) by lod/2 for later visualization purposes.
+         across(3:220, ~ . / lod)) |> 
+  ungroup() |> 
+  pivot_longer(cols = 3:220,
+               names_to = "part_id",
+               values_to = "conc_min") |> 
+  mutate(cases = str_c(part_id, Chemical, sep = "/"),
+         rank_approach4 = rank(-conc_min, ties.method = "min")) |> 
+  arrange(rank_approach4) |> 
+  select(8, 7, 5, 1, 6, 4)
+```
 
 
 
