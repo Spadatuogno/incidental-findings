@@ -21,7 +21,7 @@ library(purrr)
 
 # Importing and reshaping datasets
 ```{r}
-rfd_iris <- read_excel("data/IRIS_RfD_simple_list_alpha.xlsx") |>  # IRIS list with RfDs values
+rfd_iris <- read_excel("data/IRIS_RfD_simple_list_alpha.xlsx") |>  # RfD values downloaded from: https://iris.epa.gov/AtoZ/alpha/
   select(2,3,7) |> 
   rename(rfd = `RfD (Chronic)`) |> 
   mutate(rfd = str_remove(rfd, "mg/kg-day"),
