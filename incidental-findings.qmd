@@ -254,7 +254,7 @@ luxchildren_134detchem_t <- luxchildren_134detchem |>
   mutate(lod = reduce(c_across(3:220), pmin, na.rm = TRUE),
          df = round(mean(!is.na(c_across(3:220)))* 100, 2),
          across(3:220, ~ ifelse(is.na(.), lod/2, as.numeric(.))), # substituting non-detected values (NAs) by lod/2 for later visualization purposes.
-         across(3:220, ~ . / lod)) |> 
+         )|> 
   ungroup() |> 
   select(c(3:220)) |> 
   t() |> 
@@ -283,11 +283,52 @@ chems_params_fig2 <- chems_params |>
 
 abs_min <- min(chems_params_fig2$lod)
 abs_max <- max(chems_params_fig2$max)
+
+perm_lod <-
+perm_max <-
+perm_df <-
+
+y_axis_limits <- c(abs_min, abs_max)
+
 ```
 
 
-### Population exposure profile of PERMETHRIN (Figure 2A)
-```{r}
+### Population exposure profile of Permethrin (Figure 2A)
 
+#### Preparation of Fig2A parameters
+```{r}
+luxchildren_134detchem_t$part_id <- factor(luxchildren_134detchem_t$part_id, levels = luxchildren_134detchem_t$part_id[order(luxchildren_134detchem_t$Permethrin)]) # sorting part_id by Permethrin values
+
+lod <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Permethrin") |> 
+  select(lod))
+max <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Permethrin") |> 
+  select(max))
+df <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Permethrin") |> 
+  select(df))
+
+horizontal_lines <- c(lod, max)
+nondet_percentil <- 1 - df/100
+
+cutoff_part_id <- sum(luxchildren_134detchem_t$Permethrin < lod)
+```
+
+#### Plotting profile for Permethrin
+```{r}
+luxchildren_134detchem_t |> 
+  mutate(color_group = if_else(as.numeric(part_id) <= cutoff_part_id, "left", "right")) |>  # separating participants with detected and non-detected permethrin to give different colors
+  ggplot(aes(x = part_id, y = Permethrin, color = color_group)) +
+  geom_point(size = 2) +
+  scale_y_continuous(trans = 'log10', 
+                     limits = y_axis_limits,
+                     breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  geom_hline(yintercept = lod, linetype = "dashed", color = "#D55E00") +
+  geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
+  geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
+#  labs
+  theme_minimal()
+  
 ```
 
