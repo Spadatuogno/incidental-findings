@@ -20,6 +20,7 @@ library(purrr)
 library(ggplot2)
 library(patchwork)
 library(tibble)
+library(forcats)
 ```
 
 # Importing and reshaping datasets
@@ -101,7 +102,6 @@ ranking_approach3 <-  luxchildren_134detchem |>
   arrange(desc(conc_median)) |> 
   select(9, 8, 6, 1, 7, 4)
 
-
 ```
 
 # Approach 4: Ranking cases based on the ratio: concentration/minimum-detected
@@ -120,6 +120,7 @@ ranking_approach4 <-  luxchildren_134detchem |>
          rank_approach4 = rank(-conc_min, ties.method = "min")) |> 
   arrange(rank_approach4) |> 
   select(8, 7, 5, 1, 6, 4)
+
 ```
 
 
@@ -259,7 +260,8 @@ luxchildren_134detchem_t <- luxchildren_134detchem |>
   select(c(3:220)) |> 
   t() |> 
   as.data.frame() |> 
-  `colnames<-`(luxchildren_134detchem$Chemical) |> 
+  set_names(luxchildren_134detchem |> 
+              pull(Chemical)) |>  
   rownames_to_column(var = "part_id")
 
 chems_params <- luxchildren_134detchem |> 
@@ -281,10 +283,15 @@ chems_params_fig2 <- chems_params |>
          Chemical == "Aldrin" |
          Chemical == "Heptachlor-exo-epoxide")
 
-abs_min <- min(chems_params_fig2$lod)
-abs_max <- max(chems_params_fig2$max)
+abs_min <- chems_params_fig2 |> 
+              summarise(min_lod = min(lod, na.rm = TRUE)) |> 
+              pull(min_lod)
 
-y_axis_limits <- c(abs_min, abs_max + 10000)
+abs_max <- chems_params_fig2 |> 
+              summarise(max_max = max(max, na.rm = TRUE)) |> 
+              pull(max_max)
+
+y_axis_limits <- c((abs_min/2), abs_max + 100000)
 
 ```
 
@@ -293,7 +300,8 @@ y_axis_limits <- c(abs_min, abs_max + 10000)
 
 #### Preparation of Fig2A parameters
 ```{r}
-luxchildren_134detchem_t$part_id <- factor(luxchildren_134detchem_t$part_id, levels = luxchildren_134detchem_t$part_id[order(luxchildren_134detchem_t$Permethrin)]) # sorting part_id by Permethrin values
+luxchildren_134detchem_t <- luxchildren_134detchem_t |> 
+  mutate(part_id = fct_reorder(part_id, Permethrin))
 
 lod <- as.numeric(chems_params_fig2 |>
   filter(Chemical == "Permethrin") |> 
@@ -308,7 +316,11 @@ df <- as.numeric(chems_params_fig2 |>
 horizontal_lines <- c(lod, max)
 nondet_percentil <- 1 - df/100
 
-cutoff_part_id <- sum(luxchildren_134detchem_t$Permethrin < lod)
+cutoff_part_id <- luxchildren_134detchem_t |> 
+  filter(Permethrin < lod) |> 
+  summarise(n = n()) |> 
+  pull(n)
+
 ```
 
 #### Plotting profile for Permethrin
@@ -340,3 +352,397 @@ luxchildren_134detchem_t |>
         legend.position = "none")
 ```
 
+### Population exposure profile of Fipronil (Figure 2B)
+
+#### Preparation of Fig2B parameters
+```{r}
+luxchildren_134detchem_t <- luxchildren_134detchem_t |> 
+  mutate(part_id = fct_reorder(part_id, Fipronil)) # sorting part_id by Fipronil values
+
+lod <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Fipronil") |> 
+  select(lod))
+max <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Fipronil") |> 
+  select(max))
+df <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Fipronil") |> 
+  select(df))
+
+horizontal_lines <- c(lod, max)
+nondet_percentil <- 1 - df/100
+
+cutoff_part_id <- luxchildren_134detchem_t |> 
+  filter(Fipronil < lod) |> 
+  summarise(n = n()) |> 
+  pull(n)
+```
+
+#### Plotting profile for Fipronil
+```{r}
+luxchildren_134detchem_t |> 
+  mutate(color_group = if_else(as.numeric(part_id) <= cutoff_part_id, "left", "right")) |>  # separating participants with detected and non-detected Fipronil to give different colors
+  ggplot(aes(x = part_id, y = Fipronil, color = color_group)) +
+  geom_point(size = 2) +
+  labs(title = "Fipronil",
+       x = "Participants",
+       y = "Concentration in pg/mg (log scale)") +
+  scale_y_continuous(trans = 'log10', 
+                     limits = y_axis_limits,
+                     breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  scale_color_manual(values = c("left" = "grey", "right" = "#0072B2")) +  
+  scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 30)]) +
+  geom_hline(yintercept = lod, linetype = "dashed", color = "#D55E00") +
+  geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
+  geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
+  annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,2)), color = "#D55E00", hjust = 1, vjust = 1) +
+  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,0)), color = "#D55E00", hjust = 1, vjust = -0.5) +
+  annotate("text", x = cutoff_part_id, y = abs_max - 10000, label = paste("DF=", round(df,0),"%"), color = "#D55E00", angle = 90, vjust = 1.5, hjust = 1) +
+  theme_minimal(base_size = 15) +
+  theme(plot.title = element_text(size = 20, hjust = 0.5),
+        axis.text.x = element_text(size = 8, hjust = 1),
+        axis.text.y = element_text(size = 8),
+        panel.grid.major = element_line(color = "grey95", size = 0.5),
+        panel.grid.minor = element_line(color = "grey96", size = 0.25),
+        legend.position = "none")
+```
+
+
+
+### Population exposure profile of Bisphenol S (Figure 2C)
+
+#### Preparation of Fig2B parameters
+```{r}
+luxchildren_134detchem_t <- luxchildren_134detchem_t |> 
+  mutate(part_id = fct_reorder(part_id, `Bisphenol S`)) # sorting part_id by Bisphenol S values
+
+lod <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Bisphenol S") |> 
+  select(lod))
+max <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Bisphenol S") |> 
+  select(max))
+df <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Bisphenol S") |> 
+  select(df))
+
+horizontal_lines <- c(lod, max)
+nondet_percentil <- 1 - df/100
+
+cutoff_part_id <- luxchildren_134detchem_t |> 
+  filter(`Bisphenol S` < lod) |> 
+  summarise(n = n()) |> 
+  pull(n)
+```
+
+#### Plotting profile for Bisphenol S
+```{r}
+luxchildren_134detchem_t |> 
+  mutate(color_group = if_else(as.numeric(part_id) <= cutoff_part_id, "left", "right")) |>  # separating participants with detected and non-detected `Bisphenol S` to give different colors
+  ggplot(aes(x = part_id, y = `Bisphenol S`, color = color_group)) +
+  geom_point(size = 2) +
+  labs(title = "Bisphenol S",
+       x = "Participants",
+       y = "Concentration in pg/mg (log scale)") +
+  scale_y_continuous(trans = 'log10', 
+                     limits = y_axis_limits,
+                     breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  scale_color_manual(values = c("left" = "grey", "right" = "#0072B2")) +  
+  scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 30)]) +
+  geom_hline(yintercept = lod, linetype = "dashed", color = "#D55E00") +
+  geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
+  geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
+  annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,2)), color = "#D55E00", hjust = 1, vjust = 1) +
+  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,0)), color = "#D55E00", hjust = 1, vjust = -0.5) +
+  annotate("text", x = cutoff_part_id, y = abs_max - 10000, label = paste("DF=", round(df,0),"%"), color = "#D55E00", angle = 90, vjust = 1.5, hjust = 1) +
+  theme_minimal(base_size = 15) +
+  theme(plot.title = element_text(size = 20, hjust = 0.5),
+        axis.text.x = element_text(size = 8, hjust = 1),
+        axis.text.y = element_text(size = 8),
+        panel.grid.major = element_line(color = "grey95", size = 0.5),
+        panel.grid.minor = element_line(color = "grey96", size = 0.25),
+        legend.position = "none")
+```
+
+
+### Population exposure profile of Bisphenol A (Figure 2D)
+
+#### Preparation of Fig2D parameters
+```{r}
+luxchildren_134detchem_t <- luxchildren_134detchem_t |> 
+  mutate(part_id = fct_reorder(part_id, `Bisphenol A`)) # sorting part_id by Bisphenol A values
+
+lod <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Bisphenol A") |> 
+  select(lod))
+max <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Bisphenol A") |> 
+  select(max))
+df <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Bisphenol A") |> 
+  select(df))
+
+horizontal_lines <- c(lod, max)
+nondet_percentil <- 1 - df/100
+
+cutoff_part_id <- luxchildren_134detchem_t |> 
+  filter(`Bisphenol A` < lod) |> 
+  summarise(n = n()) |> 
+  pull(n)
+```
+
+#### Plotting profile for Bisphenol A
+```{r}
+luxchildren_134detchem_t |> 
+  mutate(color_group = if_else(as.numeric(part_id) <= cutoff_part_id, "left", "right")) |>  # separating participants with detected and non-detected `Bisphenol A` to give different colors
+  ggplot(aes(x = part_id, y = `Bisphenol A`, color = color_group)) +
+  geom_point(size = 2) +
+  labs(title = "Bisphenol A",
+       x = "Participants",
+       y = "Concentration in pg/mg (log scale)") +
+  scale_y_continuous(trans = 'log10', 
+                     limits = y_axis_limits,
+                     breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  scale_color_manual(values = c("left" = "grey", "right" = "#0072B2")) +  
+  scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 30)]) +
+  geom_hline(yintercept = lod, linetype = "dashed", color = "#D55E00") +
+  geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
+  geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
+  annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,2)), color = "#D55E00", hjust = 1, vjust = 1) +
+  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,0)), color = "#D55E00", hjust = 1, vjust = -0.5) +
+  annotate("text", x = cutoff_part_id, y = abs_max - 10000, label = paste("DF=", round(df,0),"%"), color = "#D55E00", angle = 90, vjust = 1.5, hjust = 1) +
+  theme_minimal(base_size = 15) +
+  theme(plot.title = element_text(size = 20, hjust = 0.5),
+        axis.text.x = element_text(size = 8, hjust = 1),
+        axis.text.y = element_text(size = 8),
+        panel.grid.major = element_line(color = "grey95", size = 0.5),
+        panel.grid.minor = element_line(color = "grey96", size = 0.25),
+        legend.position = "none")
+```
+
+
+
+
+### Population exposure profile of Flusilazole (Figure 2E)
+
+#### Preparation of Fig2E parameters
+```{r}
+luxchildren_134detchem_t <- luxchildren_134detchem_t |> 
+  mutate(part_id = fct_reorder(part_id, Flusilazole)) # sorting part_id by Flusilazole values
+
+lod <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Flusilazole") |> 
+  select(lod))
+max <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Flusilazole") |> 
+  select(max))
+df <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Flusilazole") |> 
+  select(df))
+
+horizontal_lines <- c(lod, max)
+nondet_percentil <- 1 - df/100
+
+cutoff_part_id <- luxchildren_134detchem_t |> 
+  filter(Flusilazole < lod) |> 
+  summarise(n = n()) |> 
+  pull(n)
+```
+
+#### Plotting profile for Flusilazole
+```{r}
+luxchildren_134detchem_t |> 
+  mutate(color_group = if_else(as.numeric(part_id) <= cutoff_part_id, "left", "right")) |>  # separating participants with detected and non-detected `Flusilazole` to give different colors
+  ggplot(aes(x = part_id, y = Flusilazole, color = color_group)) +
+  geom_point(size = 2) +
+  labs(title = "Flusilazole",
+       x = "Participants",
+       y = "Concentration in pg/mg (log scale)") +
+  scale_y_continuous(trans = 'log10', 
+                     limits = y_axis_limits,
+                     breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  scale_color_manual(values = c("left" = "grey", "right" = "#0072B2")) +  
+  scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 30)]) +
+  geom_hline(yintercept = lod, linetype = "dashed", color = "#D55E00") +
+  geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
+  geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
+  annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,2)), color = "#D55E00", hjust = 1, vjust = 1) +
+  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,0)), color = "#D55E00", hjust = 1, vjust = -0.5) +
+  annotate("text", x = cutoff_part_id, y = abs_max - 10000, label = paste("DF=", round(df,0),"%"), color = "#D55E00", angle = 90, vjust = 1.5, hjust = 1) +
+  theme_minimal(base_size = 15) +
+  theme(plot.title = element_text(size = 20, hjust = 0.5),
+        axis.text.x = element_text(size = 8, hjust = 1),
+        axis.text.y = element_text(size = 8),
+        panel.grid.major = element_line(color = "grey95", size = 0.5),
+        panel.grid.minor = element_line(color = "grey96", size = 0.25),
+        legend.position = "none")
+```
+
+
+
+### Population exposure profile of Prochloraz (Figure 2F)
+
+#### Preparation of Fig2F parameters
+```{r}
+luxchildren_134detchem_t <- luxchildren_134detchem_t |> 
+  mutate(part_id = fct_reorder(part_id, Prochloraz)) # sorting part_id by Prochloraz values
+
+lod <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Prochloraz") |> 
+  select(lod))
+max <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Prochloraz") |> 
+  select(max))
+df <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Prochloraz") |> 
+  select(df))
+
+horizontal_lines <- c(lod, max)
+nondet_percentil <- 1 - df/100
+
+cutoff_part_id <- luxchildren_134detchem_t |> 
+  filter(Prochloraz < lod) |> 
+  summarise(n = n()) |> 
+  pull(n)
+```
+
+#### Plotting profile for Prochloraz
+```{r}
+luxchildren_134detchem_t |> 
+  mutate(color_group = if_else(as.numeric(part_id) <= cutoff_part_id, "left", "right")) |>  # separating participants with detected and non-detected `Prochloraz` to give different colors
+  ggplot(aes(x = part_id, y = Prochloraz, color = color_group)) +
+  geom_point(size = 2) +
+  labs(title = "Prochloraz",
+       x = "Participants",
+       y = "Concentration in pg/mg (log scale)") +
+  scale_y_continuous(trans = 'log10', 
+                     limits = y_axis_limits,
+                     breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  scale_color_manual(values = c("left" = "grey", "right" = "#0072B2")) +  
+  scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 30)]) +
+  geom_hline(yintercept = lod, linetype = "dashed", color = "#D55E00") +
+  geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
+  geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
+  annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,2)), color = "#D55E00", hjust = 1, vjust = 1) +
+  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,0)), color = "#D55E00", hjust = 1, vjust = -0.5) +
+  annotate("text", x = cutoff_part_id, y = abs_max - 10000, label = paste("DF=", round(df,0),"%"), color = "#D55E00", angle = 90, vjust = 1.5, hjust = 1) +
+  theme_minimal(base_size = 15) +
+  theme(plot.title = element_text(size = 20, hjust = 0.5),
+        axis.text.x = element_text(size = 8, hjust = 1),
+        axis.text.y = element_text(size = 8),
+        panel.grid.major = element_line(color = "grey95", size = 0.5),
+        panel.grid.minor = element_line(color = "grey96", size = 0.25),
+        legend.position = "none")
+```
+
+
+### Population exposure profile of Aldrin (Figure 2G)
+
+#### Preparation of Fig2G parameters
+```{r}
+luxchildren_134detchem_t <- luxchildren_134detchem_t |> 
+  mutate(part_id = fct_reorder(part_id, Aldrin)) # sorting part_id by Aldrin values
+
+lod <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Aldrin") |> 
+  select(lod))
+max <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Aldrin") |> 
+  select(max))
+df <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Aldrin") |> 
+  select(df))
+
+horizontal_lines <- c(lod, max)
+nondet_percentil <- 1 - df/100
+
+cutoff_part_id <- luxchildren_134detchem_t |> 
+  filter(Aldrin < lod) |> 
+  summarise(n = n()) |> 
+  pull(n)
+```
+
+#### Plotting profile for Aldrin
+```{r}
+luxchildren_134detchem_t |> 
+  mutate(color_group = if_else(as.numeric(part_id) <= cutoff_part_id, "left", "right")) |>  # separating participants with detected and non-detected `Aldrin` to give different colors
+  ggplot(aes(x = part_id, y = Aldrin, color = color_group)) +
+  geom_point(size = 2) +
+  labs(title = "Aldrin",
+       x = "Participants",
+       y = "Concentration in pg/mg (log scale)") +
+  scale_y_continuous(trans = 'log10', 
+                     limits = y_axis_limits,
+                     breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  scale_color_manual(values = c("left" = "grey", "right" = "#0072B2")) +  
+  scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 30)]) +
+  geom_hline(yintercept = lod, linetype = "dashed", color = "#D55E00") +
+  geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
+  geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
+  annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,2)), color = "#D55E00", hjust = 1, vjust = 1) +
+  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,0)), color = "#D55E00", hjust = 1, vjust = -0.5) +
+  annotate("text", x = cutoff_part_id, y = abs_max - 10000, label = paste("DF=", round(df,0),"%"), color = "#D55E00", angle = 90, vjust = 1.5, hjust = 1) +
+  theme_minimal(base_size = 15) +
+  theme(plot.title = element_text(size = 20, hjust = 0.5),
+        axis.text.x = element_text(size = 8, hjust = 1),
+        axis.text.y = element_text(size = 8),
+        panel.grid.major = element_line(color = "grey95", size = 0.5),
+        panel.grid.minor = element_line(color = "grey96", size = 0.25),
+        legend.position = "none")
+```
+
+
+### Population exposure profile of Heptachlor-exo-epoxide (Figure 2H)
+
+#### Preparation of Fig2H parameters
+```{r}
+luxchildren_134detchem_t <- luxchildren_134detchem_t |> 
+  mutate(part_id = fct_reorder(part_id, `Heptachlor-exo-epoxide`)) # sorting part_id by Heptachlor-exo-epoxide values
+
+lod <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Heptachlor-exo-epoxide") |> 
+  select(lod))
+max <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Heptachlor-exo-epoxide") |> 
+  select(max))
+df <- as.numeric(chems_params_fig2 |>
+  filter(Chemical == "Heptachlor-exo-epoxide") |> 
+  select(df))
+
+horizontal_lines <- c(lod, max)
+nondet_percentil <- 1 - df/100
+
+cutoff_part_id <- luxchildren_134detchem_t |> 
+  filter(`Heptachlor-exo-epoxide` < lod) |> 
+  summarise(n = n()) |> 
+  pull(n)
+```
+
+#### Plotting profile for Heptachlor-exo-epoxide
+```{r}
+luxchildren_134detchem_t |> 
+  mutate(color_group = if_else(as.numeric(part_id) <= cutoff_part_id, "left", "right")) |>  # separating participants with detected and non-detected `Heptachlor-exo-epoxide` to give different colors
+  ggplot(aes(x = part_id, y = `Heptachlor-exo-epoxide`, color = color_group)) +
+  geom_point(size = 2) +
+  labs(title = "Heptachlor-exo-epoxide",
+       x = "Participants",
+       y = "Concentration in pg/mg (log scale)") +
+  scale_y_continuous(trans = 'log10', 
+                     limits = y_axis_limits,
+                     breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  scale_color_manual(values = c("left" = "grey", "right" = "#0072B2")) +  
+  scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 30)]) +
+  geom_hline(yintercept = lod, linetype = "dashed", color = "#D55E00") +
+  geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
+  geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
+  annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,2)), color = "#D55E00", hjust = 1, vjust = 1) +
+  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,0)), color = "#D55E00", hjust = 1, vjust = -0.5) +
+  annotate("text", x = cutoff_part_id, y = abs_max - 10000, label = paste("DF=", round(df,0),"%"), color = "#D55E00", angle = 90, vjust = 1.5, hjust = 1) +
+  theme_minimal(base_size = 15) +
+  theme(plot.title = element_text(size = 20, hjust = 0.5),
+        axis.text.x = element_text(size = 8, hjust = 1),
+        axis.text.y = element_text(size = 8),
+        panel.grid.major = element_line(color = "grey95", size = 0.5),
+        panel.grid.minor = element_line(color = "grey96", size = 0.25),
+        legend.position = "none")
+```
