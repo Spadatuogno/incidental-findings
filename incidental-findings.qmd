@@ -321,14 +321,25 @@ luxchildren_134detchem_t |>
   mutate(color_group = if_else(as.numeric(part_id) <= cutoff_part_id, "left", "right")) |>  # separating participants with detected and non-detected permethrin to give different colors
   ggplot(aes(x = part_id, y = Permethrin, color = color_group)) +
   geom_point(size = 2) +
+  labs(title = "Permethrin",
+       x = "Participants",
+       y = "Concentration in pg/mg (log scale)") +
   scale_y_continuous(trans = 'log10', 
                      limits = y_axis_limits,
                      breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 30)]) +
   geom_hline(yintercept = lod, linetype = "dashed", color = "#D55E00") +
   geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
   geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
-#  labs
-  theme_minimal()
-  
+  annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,2)), color = "#D55E00", hjust = 1, vjust = 1) +
+  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,0)), color = "#D55E00", hjust = 1, vjust = -0.5) +
+  annotate("text", x = cutoff_part_id, y = abs_max - 10000, label = paste("DF=", round(df,0),"%"), color = "#D55E00", angle = 90, vjust = 1.5, hjust = 1) +
+  theme_minimal(base_size = 15) +
+  theme(plot.title = element_text(size = 20, hjust = 0.5),
+        axis.text.x = element_text(size = 8, hjust = 1),
+        axis.text.y = element_text(size = 8),
+       # panel.grid.major = element_line(color = "grey95", size = 0.5),
+      # panel.grid.minor = element_line(color = "grey96", size = 0.25),
+        )
 ```
 
