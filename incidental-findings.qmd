@@ -284,11 +284,7 @@ chems_params_fig2 <- chems_params |>
 abs_min <- min(chems_params_fig2$lod)
 abs_max <- max(chems_params_fig2$max)
 
-perm_lod <-
-perm_max <-
-perm_df <-
-
-y_axis_limits <- c(abs_min, abs_max)
+y_axis_limits <- c(abs_min, abs_max + 10000)
 
 ```
 
@@ -326,7 +322,8 @@ luxchildren_134detchem_t |>
        y = "Concentration in pg/mg (log scale)") +
   scale_y_continuous(trans = 'log10', 
                      limits = y_axis_limits,
-                     breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+                     breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
+  scale_color_manual(values = c("left" = "grey", "right" = "#0072B2")) +  
   scale_x_discrete(breaks = function(x) x[seq(1, length(x), by = 30)]) +
   geom_hline(yintercept = lod, linetype = "dashed", color = "#D55E00") +
   geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
@@ -338,8 +335,8 @@ luxchildren_134detchem_t |>
   theme(plot.title = element_text(size = 20, hjust = 0.5),
         axis.text.x = element_text(size = 8, hjust = 1),
         axis.text.y = element_text(size = 8),
-       # panel.grid.major = element_line(color = "grey95", size = 0.5),
-      # panel.grid.minor = element_line(color = "grey96", size = 0.25),
-        )
+        panel.grid.major = element_line(color = "grey95", size = 0.5),
+        panel.grid.minor = element_line(color = "grey96", size = 0.25),
+        legend.position = "none")
 ```
 
