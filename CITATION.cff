@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this code in your work, please cite it as below."
+title: "Incidental Findings"
+authors:
+  - family-names: "Catuogno"
+    given-names: "Franco"
+date-released: 2026-01-29
+url: "https://github.com/Spadatuogno/incidental-findings"
+repository-code: "https://github.com/Spadatuogno/incidental-findings"
+abstract: >
+  R code and analysis workflows for the study and visualization of incidental
+  findings in human biomonitoring and environmental exposure data.
+license: "MIT"
