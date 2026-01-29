@@ -21,6 +21,7 @@ library(ggplot2)
 library(patchwork)
 library(tibble)
 library(forcats)
+library(openxlsx)
 ```
 
 # Importing and reshaping datasets
@@ -123,6 +124,17 @@ ranking_approach4 <-  luxchildren_134detchem |>
 
 ```
 
+# Exporting the rankings for the Supplementary Material
+```{r}
+Rankings <- list(
+  Approach1_RfDConc = ranking_approach1,
+  Approach2_Conc = ranking_approach2,
+  Approach3_ConcMedianRatio = ranking_approach3,
+  Approach3_ConcMinRatio = ranking_approach4
+)
+
+write.xlsx(Rankings, file = "Supplementary_material.xlsx")
+```
 
 # Rankings visualization (Figure 1)
 
@@ -220,8 +232,8 @@ ranking_approach4 |>
   ggplot(aes(x = conc_min, y = rank_case, fill = Chemical)) +
   geom_bar(stat = "identity", color = "black", width = 0.7) +
   geom_vline(xintercept = c(25000, 100000,200000), color = "lightgrey", linetype = "dashed", size = 0.5) +
-  scale_x_continuous(breaks = c(25000, 100000,200000),
-                     labels = c("25000", "100000", "200000")) +
+  scale_x_continuous(breaks = c(2e4, 1e5, 2e5),
+                     labels = c("2e4", "1e5", "2e5")) +
   scale_fill_manual(values = colors_Chems) +
   theme_minimal() +
   theme(
@@ -237,7 +249,7 @@ ranking_approach4 |>
     plot.margin = margin(1, 1, 1, 0, "cm"),
     plot.title = element_text(hjust = 0.1, size = 20)) +
   labs(title = "Approach 4",
-       x = "Concentration/Minimum") -> ra4
+       x = "Concentration/MIN") -> ra4
 
 ra1 + ra2 + ra3 + ra4 + plot_layout(nrow = 1)
 ```
@@ -384,7 +396,8 @@ luxchildren_134detchem_t |>
   ggplot(aes(x = part_id, y = Fipronil, color = color_group)) +
   geom_point(size = 2) +
   labs(title = "Fipronil",
-       x = "Participants") +
+       x = "Participants",
+       y = element_blank()) +
   scale_y_continuous(trans = 'log10', 
                      limits = y_axis_limits,
                      breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
@@ -440,7 +453,8 @@ luxchildren_134detchem_t |>
   ggplot(aes(x = part_id, y = `Bisphenol S`, color = color_group)) +
   geom_point(size = 2) +
   labs(title = "Bisphenol S",
-       x = "Participants") +
+       x = "Participants",
+       y = element_blank()) +
   scale_y_continuous(trans = 'log10', 
                      limits = y_axis_limits,
                      breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
@@ -495,7 +509,8 @@ luxchildren_134detchem_t |>
   ggplot(aes(x = part_id, y = `Bisphenol A`, color = color_group)) +
   geom_point(size = 2) +
   labs(title = "Bisphenol A",
-       x = "Participants") +
+       x = "Participants",
+       y = element_blank()) +
   scale_y_continuous(trans = 'log10', 
                      limits = y_axis_limits,
                      breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
@@ -563,7 +578,7 @@ luxchildren_134detchem_t |>
   geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
   geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
   annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,4)), color = "#D55E00", hjust = 3, vjust = -0.5) +
-  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,3)), color = "#D55E00", hjust = 1.05, vjust = -0.5) +
+  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,3)), color = "#D55E00", hjust = 3, vjust = -0.5) +
   annotate("text", x = cutoff_part_id, y = abs_max - 10000, label = paste("DF=", round(df,0),"%"), color = "#D55E00", angle = 90, vjust = 1.5, hjust = 1) +
   theme_minimal(base_size = 15) +
   theme(plot.title = element_text(size = 20, hjust = 0.5),
@@ -609,7 +624,8 @@ luxchildren_134detchem_t |>
   ggplot(aes(x = part_id, y = Prochloraz, color = color_group)) +
   geom_point(size = 2) +
   labs(title = "Prochloraz",
-       x = "Participants") +
+       x = "Participants",
+       y = element_blank()) +
   scale_y_continuous(trans = 'log10', 
                      limits = y_axis_limits,
                      breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
@@ -619,7 +635,7 @@ luxchildren_134detchem_t |>
   geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
   geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
   annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,4)), color = "#D55E00", hjust = 3, vjust = -0.5) +
-  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,3)), color = "#D55E00", hjust = 1, vjust = -0.5) +
+  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,3)), color = "#D55E00", hjust = 3, vjust = -0.5) +
   annotate("text", x = cutoff_part_id, y = abs_max - 10000, label = paste("DF=", round(df,0),"%"), color = "#D55E00", angle = 90, vjust = 1.5, hjust = 1) +
   theme_minimal(base_size = 15) +
   theme(plot.title = element_text(size = 20, hjust = 0.5),
@@ -664,7 +680,8 @@ luxchildren_134detchem_t |>
   ggplot(aes(x = part_id, y = Aldrin, color = color_group)) +
   geom_point(size = 2) +
   labs(title = "Aldrin",
-       x = "Participants") +
+       x = "Participants",
+       y = element_blank()) +
   scale_y_continuous(trans = 'log10', 
                      limits = y_axis_limits,
                      breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
@@ -674,7 +691,7 @@ luxchildren_134detchem_t |>
   geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
   geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
   annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,2)), color = "#D55E00", hjust = 3, vjust = -0.5) +
-  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,2)), color = "#D55E00", hjust = 1, vjust = -0.5) +
+  annotate("text", x = Inf, y = max, label = paste("MAX =", round(max,2)), color = "#D55E00", hjust = 3, vjust = -0.5) +
   annotate("text", x = cutoff_part_id, y = abs_max - 10000, label = paste("DF=", round(df,0),"%"), color = "#D55E00", angle = 90, vjust = 1.5, hjust = 1) +
   theme_minimal(base_size = 15) +
   theme(plot.title = element_text(size = 20, hjust = 0.5),
@@ -719,7 +736,8 @@ luxchildren_134detchem_t |>
   ggplot(aes(x = part_id, y = `Heptachlor-exo-epoxide`, color = color_group)) +
   geom_point(size = 2) +
   labs(title = "Heptachlor-exo-epoxide",
-       x = "Participants") +
+       x = "Participants",
+       y = element_blank()) +
   scale_y_continuous(trans = 'log10', 
                      limits = y_axis_limits,
                      breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)) +
@@ -728,7 +746,7 @@ luxchildren_134detchem_t |>
   geom_hline(yintercept = lod, linetype = "dashed", color = "#D55E00") +
   geom_hline(yintercept = max, linetype = "dashed", color = "#D55E00") +
   geom_vline(xintercept = cutoff_part_id, linetype = "dashed", color = "#D55E00") +
-  annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,2), "= MAX"), color = "#D55E00", hjust = 3, vjust = -0.5) +
+  annotate("text", x = Inf, y = lod, label = paste("MIN =", round(lod,2), "= MAX"), color = "#D55E00", hjust = 2, vjust = -0.5) +
   annotate("text", x = cutoff_part_id, y = abs_max - 10000, label = paste("DF=", round(df,1),"%"), color = "#D55E00", angle = 90, vjust = -0.5, hjust = 1) +
   theme_minimal(base_size = 15) +
   theme(plot.title = element_text(size = 20, hjust = 0.5),
@@ -742,7 +760,9 @@ luxchildren_134detchem_t |>
 
 ### Figure 2: Combination of the 8 plots
 ```{r}
-(pep_pmt | pep_fpn | pep_bps | pep_bpa) / (pep_fsz | pep_pcz | pep_ald | pep_hee) +
+fig2 <- (pep_pmt | pep_fpn | pep_bps | pep_bpa) / 
+  (pep_fsz | pep_pcz | pep_ald | pep_hee) +
   plot_annotation(tag_levels = 'A')
+fig2
 ```
 
