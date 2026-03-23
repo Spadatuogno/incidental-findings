@@ -772,3 +772,160 @@ fig2 <- (pep_pmt | pep_fpn | pep_bps | pep_bpa) /
   plot_annotation(tag_levels = 'A')
 fig2
 ```
+
+
+## Chemical exposure profile of single participant (Figure 3)
+
+### Preparation of the dataframe with non-detected values as half of LOD
+
+```{r}
+luxchildren_134detchem_ratioconclod <- luxchildren_134detchem |> 
+  rowwise() |> 
+  mutate(lod = reduce(c_across(3:220), pmin, na.rm = TRUE),
+         df = round(mean(!is.na(c_across(3:220)))* 100, 2),
+         across(3:220, ~ ifelse(is.na(.), lod/2, as.numeric(.))), # substituting non-detected values (NAs) by lod/2 for later visualization purposes.
+         across(3:220, ~ . / lod)) |> 
+  ungroup()
+```
+
+### Chemical exposure profile of participant S117
+
+#### Especification of S117 data and parameters before plotting 
+```{r}
+# Preprocess data
+plot_data <- luxchildren_134detchem_ratioconclod |> 
+  mutate(
+    Chemical = forcats::fct_reorder(Chemical, S117),
+    Chemical_num = as.numeric(Chemical))
+
+# Definition of the percentile threshold for the y-axis to separate detected of non-detected chemicals 
+percentile <- 0.53 # percentage of non-detected chemicals
+
+y_percentile_value <- plot_data |> 
+  summarise(q = quantile(Chemical_num, probs = percentile)) |> 
+  pull(q)
+
+plot_data <- plot_data |> 
+  mutate(
+    Status = if_else(
+      Chemical_num <= y_percentile_value,
+      "Non detected",
+      "Detected"))
+
+# Definition of the Maximum Conc/MIN value (x-axis) to harmonize dimensions in all plots 
+max_x_value <- plot_data |> 
+  summarise(max_val = max(S117)) |> 
+  pull(max_val)
+
+```
+
+#### Plotting CEP for participant S117
+```{r}
+
+cep_S117 <- plot_data |> 
+  ggplot(aes(x = S117, y = Chemical, color = Status)) +
+  
+    geom_vline(
+    xintercept = 1,
+    linetype = "dashed",
+    color = "black",
+    size = 1
+  ) +
+
+    geom_hline(
+    yintercept = y_percentile_value,
+    linetype = "dashed",
+    color = "black",
+    size = 1
+  ) +
+  
+  annotate(
+    "text",
+    x = 0.8,
+    y = 20,
+    label = "Minimum detected",
+    color = "black",
+    hjust = 0.5,
+    size = 4,
+    angle = 90
+  ) +
+
+annotate(
+    "text",
+    x = max_x_value,
+    y = y_percentile_value - 2,
+    label = "Non detected",
+    color = "#009E73",
+    hjust = 1,
+    size = 5
+  ) +
+
+annotate(
+    "text",
+    x = max_x_value,
+    y = y_percentile_value + 2,
+    label = "Detected",
+    color = "#D55E00",
+    hjust = 1,
+    size = 5
+  ) +  
+
+ geom_point(size = 3) +
+
+    scale_color_manual(
+    values = c(
+      "Non detected" = "#009E73",
+      "Detected" = "#D55E00"
+    ),
+    guide = "none"
+  ) +
+
+  scale_x_continuous(
+    trans = "log10",
+    breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000),
+    limits = c(NA, max_x_value)
+  ) +
+
+  scale_y_discrete(
+    breaks = function(x) x[seq(1, length(x), by = 1)]
+  ) +
+
+  coord_cartesian(
+    ylim = c(0.5, nlevels(plot_data$Chemical) + 2)
+  ) +
+
+  labs(
+    title = "Participant S117",
+    x = "Concentration/MIN [Log Scale]",
+    y = NULL
+  ) +
+
+  theme_minimal(base_size = 16) +
+
+  theme(
+    plot.title = element_text(
+      size = 20,
+      hjust = 0.5,
+      face = "bold"
+    ),
+    axis.text.y = element_text(
+      size = 10,
+      hjust = 1
+    ),
+    axis.text.x = element_text(size = 10),
+    axis.title.x = element_text(
+      size = 14,
+      margin = margin(r = 10)
+    ),
+    plot.margin = margin(15, 25, 15, 15),
+    panel.grid.major = element_line(
+      color = "grey90",
+      size = 0.5
+    ),
+    panel.grid.minor = element_blank()
+  )
+
+cep_S117
+```
+
+ 
