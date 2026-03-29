@@ -1219,6 +1219,149 @@ cep_S045
 
 ### Fig 3 of IF_v4
 ```{r}
-Fig3 <- (cep_S117 | cep_S075 | cep_S045) 
-  Fig3
+fig3 <- (cep_S117 | cep_S075 | cep_S045) 
+fig3
 ```
+
+
+## Comparision BPA and Fipronil's PEP with background gradient (Figure 4) 
+
+### Preparation of the dataframe
+```{r}
+# Limiting dataframe to Fipronil
+fip_ranking  <- luxchildren_134detchem_t |> 
+  select(Fipronil) |> 
+  arrange(Fipronil) |> 
+  mutate(rank_participant = paste0("rank", row_number()))
+
+# Limiting dataframe to BPA
+bpa_ranking  <- luxchildren_134detchem_t |> 
+  select(`Bisphenol A`) |> 
+  arrange(`Bisphenol A`) |> 
+  mutate(rank_participant = paste0("rank", row_number()))
+
+# Combining the 2 dataframes
+fip_vs_bpa <- inner_join(fip_ranking, bpa_ranking) |> 
+  relocate(rank_participant) |> 
+  pivot_longer(2:3, names_to = "Chemical", values_to = "Concentration")  |> 
+  group_by(Chemical) |> 
+  mutate(rank_participant = factor(rank_participant, levels = rank_participant[order(Concentration)])) |> 
+  ungroup()
+
+
+# Creation of a gradient background for the combined data frame
+gradient_bg <- fip_vs_bpa |> 
+  summarise(n = n_distinct(rank_participant)) |> 
+  mutate(
+    x = list(seq_len(n)),
+    xend = list(seq_len(n) + 1),
+    y = -Inf,
+    yend = Inf
+  ) |> 
+  unnest(c(x, xend)) |> 
+  select(x, xend, y, yend)
+```
+
+### Plot of the comparision of the 2 PEPs
+```{r}
+
+# Defining Fipronil's maximum value for the horizontal dashed line
+fip_max <- chems_params_fig2 |>
+  filter(Chemical == "Fipronil") |>
+  pull(max)
+
+# Preparation of a dataframe for the labels of the dot-plots
+label_data <- fip_vs_bpa |>
+  group_by(Chemical) |>
+  slice_max(rank_participant, n = 1) |>
+  ungroup()
+
+# Plot
+ggplot() +
+  geom_rect(
+    data = gradient_bg,
+    aes(
+      xmin = x - 0.5,
+      xmax = xend - 0.5,
+      ymin = y,
+      ymax = yend,
+      fill = x
+    ),
+    alpha = 0.7,
+    inherit.aes = FALSE
+  ) +
+
+  scale_fill_gradientn(
+    colors = c("#F0F9FF", "#EFF6FF", "#BEDBFF", "#51A2FF", "#193CB8"),
+    values = scales::rescale(c(0, 0.80, 0.90, 0.97, 1)),
+    name = "Likelihood of impactful personalized intervention",
+    breaks = range(gradient_bg$x),
+    labels = c("Low", "High")
+  ) +
+
+  guides(
+    fill = guide_colorbar(
+      direction = "horizontal",
+      title.position = "top",
+      label.position = "bottom",
+      barwidth = unit(8, "cm"),
+      barheight = unit(0.6, "cm"),
+      ticks = FALSE
+    ),
+    color = "none"
+  ) +
+
+  geom_point(
+    data = fip_vs_bpa,
+    aes(
+      x = rank_participant,
+      y = Concentration,
+      color = Chemical
+    ),
+    size = 2
+  ) +
+
+  coord_trans(y = "log10") +
+
+  scale_y_continuous(
+    limits = y_axis_limits,
+    breaks = c(0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000)
+  ) +
+
+  geom_hline(
+    yintercept = fip_max,
+    linetype = "dashed",
+    color = "black"
+  ) +
+
+  geom_text(
+    data = label_data,
+    aes(
+      x = rank_participant + 2,
+      y = Concentration,
+      label = Chemical,
+      color = Chemical
+    ),
+    hjust = 1.5,
+    vjust = 1,
+    size = 4,
+    fontface = "bold",
+    show.legend = FALSE
+  ) +
+
+  labs(
+    x = "Participants rank",
+    y = "Concentration (pg/mg)"
+  ) +
+
+  scale_color_manual(
+    values = c(
+      "Bisphenol A" = "#1f77b4",
+      "Fipronil" = "#8c564b"
+    )
+  ) +
+
+  theme_minimal() +
+  theme(legend.position = "top")
+```
+
