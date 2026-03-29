@@ -22,6 +22,7 @@ library(patchwork)
 library(tibble)
 library(forcats)
 library(openxlsx)
+library(ggrepel)
 ```
 
 # Importing and reshaping datasets
@@ -1363,5 +1364,126 @@ ggplot() +
 
   theme_minimal() +
   theme(legend.position = "top")
+```
+
+## Global visualization of the concentration/MIN values fo different cases (Figure 5) 
+    Limited to 1000 combinations with only the top 6 chemicals
+
+### Preparation of the dataframe
+```{r}
+colors_Chems3 <- c(
+    "Bisphenol A"   = "#1f77b4",
+    "Permethrin"    = "#2ca02c",
+    "Bisphenol S"   = "#ff7f0e",
+    "Imidacloprid"  = "#d62728",
+    "Fipronil"      = "#8c564b",
+    "Azoxystrobin"  = "#800080"
+)
+
+colors_border <- c(
+    "Bisphenol A"   = "#0f4c81",
+    "Permethrin"    = "#1c6b1c",
+    "Bisphenol S"   = "#cc6600",
+    "Imidacloprid"  = "#8b1c1c",
+    "Fipronil"      = "#5a3a2a",
+    "Azoxystrobin"  = "#4b004b"
+)
+
+chem_order <- c(
+    "Permethrin",
+    "Fipronil",
+    "Imidacloprid",
+    "Bisphenol S",
+    "Bisphenol A",
+    "Azoxystrobin"
+)
+
+plot_data2 <- ranking_approach4 |>
+    filter(Chemical %in% names(colors_Chems3)) |>
+    mutate(
+        Chemical = factor(Chemical, levels = chem_order),
+        x_jitter = 1 + runif(n(), min = -0.002, max = 0.002)
+    ) |>
+    slice_head(n = 1000)
+
+label_data <- plot_data2 |>
+    filter(part_id %in% c("S117", "S075", "S045")) |>
+    group_by(part_id) |>
+    slice_head(n = 1) |>
+    ungroup()
+
+y_min <- plot_data2 |>
+    summarise(y_min = min(conc_min, na.rm = TRUE)) |>
+    pull(y_min)
+
+y_max <- plot_data2 |>
+    summarise(y_max = max(conc_min, na.rm = TRUE)) |>
+    pull(y_max)
+
+ggplot(plot_data2, aes(x = x_jitter, y = conc_min)) +
+    
+    geom_point(
+        aes(fill = Chemical, color = Chemical),
+        shape = 21,
+        stroke = 0.5,
+        size = 2.5,
+        alpha = 0.8
+    ) +
+    
+    geom_text_repel(
+        data = label_data,
+        aes(label = part_id, color = Chemical),
+        size = 3.4,
+        nudge_x = 0.00035,
+        direction = "x",
+        point.padding = 0.3,
+        box.padding = 0.3,
+        max.overlaps = Inf,
+        show.legend = FALSE
+    ) +
+    
+    scale_y_log10() +
+    scale_x_continuous(limits = c(0.9975, 1.0035)) +
+    
+    scale_fill_manual(values = colors_Chems3) +
+    scale_color_manual(values = colors_border) +
+    
+    annotate(
+        "polygon",
+        x = c(1.00240, 1.00250, 1.00280, 1.00210),
+        y = c(y_min, y_min, y_max, y_max),
+        fill = "grey70",
+        alpha = 0.6
+    ) +
+    
+    annotate(
+        "text",
+        x = 1.00240,
+        y = y_max * 1.4,
+        label = "Higher priority",
+        size = 3.4,
+        vjust = 0
+    ) +
+    
+    annotate(
+        "text",
+        x = 1.00240,
+        y = y_min / 1.4,
+        label = "Lower priority",
+        size = 3.5,
+        vjust = 1
+    ) +
+    
+    labs(
+        x = "Cases (participant/chemical)",
+        y = "Concentration/MIN"
+    ) +
+    
+    theme_minimal() +
+    theme(
+        axis.text.x = element_blank(),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 11)
+    )
 ```
 
