@@ -845,9 +845,9 @@ cep_S117 <- plot_data |>
   
   annotate(
     "text",
-    x = 1.2,
-    y = 20,
-    label = "Minimum detected",
+    x = 1.6,
+    y = 7,
+    label = "Concentration = MIN",
     color = "black",
     hjust = 0.5,
     size = 4,
@@ -900,7 +900,7 @@ annotate(
 
   labs(
     title = "Participant S117",
-    x = "Concentration/MIN [Log Scale]",
+    x = "Concentration/MIN (log scale)",
     y = NULL
   ) +
 
@@ -908,7 +908,7 @@ annotate(
 
   theme(
     plot.title = element_text(
-      size = 20,
+      size = 14,
       hjust = 0.5,
       face = "bold"
     ),
@@ -918,7 +918,7 @@ annotate(
     ),
     axis.text.x = element_text(size = 10),
     axis.title.x = element_text(
-      size = 14,
+      size = 11,
       margin = margin(r = 10)
     ),
     plot.margin = margin(15, 25, 15, 15),
@@ -988,9 +988,9 @@ cep_S075 <- plot_data |>
   
   annotate(
     "text",
-    x = 1.2,
-    y = 20,
-    label = "Minimum detected",
+    x = 1.6,
+    y = 7,
+    label = "Concentration = MIN",
     color = "black",
     hjust = 0.5,
     size = 4,
@@ -1043,7 +1043,7 @@ annotate(
 
   labs(
     title = "Participant S075",
-    x = "Concentration/MIN [Log Scale]",
+    x = "Concentration/MIN (log scale)",
     y = NULL
   ) +
 
@@ -1051,7 +1051,7 @@ annotate(
 
   theme(
     plot.title = element_text(
-      size = 20,
+      size = 14,
       hjust = 0.5,
       face = "bold"
     ),
@@ -1061,7 +1061,7 @@ annotate(
     ),
     axis.text.x = element_text(size = 10),
     axis.title.x = element_text(
-      size = 14,
+      size = 11,
       margin = margin(r = 10)
     ),
     plot.margin = margin(15, 25, 15, 15),
@@ -1131,9 +1131,9 @@ cep_S045 <- plot_data |>
   
   annotate(
     "text",
-    x = 1.2,
-    y = 20,
-    label = "Minimum detected",
+    x = 1.6,
+    y = 7,
+    label = "Concentration = MIN",
     color = "black",
     hjust = 0.5,
     size = 4,
@@ -1186,7 +1186,7 @@ annotate(
 
   labs(
     title = "Participant S045",
-    x = "Concentration/MIN [Log Scale]",
+    x = "Concentration/MIN (log scale)",
     y = NULL
   ) +
 
@@ -1194,7 +1194,7 @@ annotate(
 
   theme(
     plot.title = element_text(
-      size = 20,
+      size = 14,
       hjust = 0.5,
       face = "bold"
     ),
@@ -1204,7 +1204,7 @@ annotate(
     ),
     axis.text.x = element_text(size = 10),
     axis.title.x = element_text(
-      size = 14,
+      size = 11,
       margin = margin(r = 10)
     ),
     plot.margin = margin(15, 25, 15, 15),
