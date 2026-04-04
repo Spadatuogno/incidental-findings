@@ -886,7 +886,7 @@ annotate(
 
   scale_x_continuous(
     trans = "log10",
-    breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000),
+    breaks = c(1, 100, 10000),
     limits = c(NA, max_x_value)
   ) +
 
@@ -1029,7 +1029,7 @@ annotate(
 
   scale_x_continuous(
     trans = "log10",
-    breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000),
+    breaks = c(1, 100, 10000),
     limits = c(NA, max_x_value)
   ) +
 
@@ -1172,7 +1172,7 @@ annotate(
 
   scale_x_continuous(
     trans = "log10",
-    breaks = c(0.01, 0.1, 1, 10, 100, 1000, 10000),
+    breaks = c(1, 100, 10000),
     limits = c(NA, max_x_value)
   ) +
 
