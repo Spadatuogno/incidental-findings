@@ -1,5 +1,5 @@
 ---
-title: "Codes for Incidental findings in HBM (JESEE)"
+title: "Codes for Incidental findings in HBM"
 author: "Franco Catuogno"
 format: html
 ---
