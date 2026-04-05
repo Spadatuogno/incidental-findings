@@ -1232,13 +1232,13 @@ fig3
 # Limiting dataframe to Fipronil
 fip_ranking  <- luxchildren_134detchem_t |> 
   select(Fipronil) |> 
-  arrange(Fipronil) |> 
+  arrange(desc(Fipronil)) |> 
   mutate(rank_participant = paste0("rank", row_number()))
 
 # Limiting dataframe to BPA
 bpa_ranking  <- luxchildren_134detchem_t |> 
   select(`Bisphenol A`) |> 
-  arrange(`Bisphenol A`) |> 
+  arrange(desc(`Bisphenol A`)) |> 
   mutate(rank_participant = paste0("rank", row_number()))
 
 # Combining the 2 dataframes
@@ -1266,7 +1266,7 @@ gradient_bg <- fip_vs_bpa |>
 ### Plot of the comparision of the 2 PEPs
 ```{r}
 
-# Defining Fipronil's maximum value for the horizontal dashed line
+# Definition of Fipronil's maximum value for the horizontal dashed line
 fip_max <- chems_params_fig2 |>
   filter(Chemical == "Fipronil") |>
   pull(max)
@@ -1323,6 +1323,12 @@ ggplot() +
   ) +
 
   coord_trans(y = "log10") +
+
+  scale_x_discrete(
+    breaks = c("rank1", "rank37", "rank73", "rank109", "rank146", "rank182", "rank218"),
+    labels = c("1°", "37°", "73°", "109°", "146°", "182°", "218°"),
+    expand = expansion(add = c(1.1, 1.1))
+    ) +
 
   scale_y_continuous(
     limits = y_axis_limits,
